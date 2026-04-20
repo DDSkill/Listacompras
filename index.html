@@ -96,226 +96,35 @@
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
-            transition: all 0.2s;
         }
-
-        #btn-clear-all:active { transform: scale(0.9); background: #fef2f2; }
 
         .list-container { flex: 1; padding: 0 20px 40px; }
         
-        .category-group { margin-top: 15px; border-radius: 10px; }
+        .category-group { margin-top: 15px; border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
         
         .category-header { 
             display: flex; 
             align-items: center; 
             justify-content: space-between;
-            font-size: 0.8rem; 
+            font-size: 0.75rem; 
             font-weight: 800; 
             color: var(--text-muted); 
-            padding: 10px 5px;
-            border-bottom: 1px solid var(--border);
+            padding: 12px;
+            background: #f9fafb;
             text-transform: uppercase;
             cursor: pointer;
         }
+
+        .category-header span { display: flex; align-items: center; gap: 8px; }
 
         .collapsed ul { display: none; }
         .chevron { transition: transform 0.3s; }
         .collapsed .chevron { transform: rotate(-90deg); }
 
-        ul { list-style: none; padding: 8px 0 0 0; margin: 0; }
+        ul { list-style: none; padding: 0; margin: 0; background: #fff; }
         
         li {
-            background: #fff;
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            margin-bottom: 8px;
+            border-top: 1px solid var(--border);
             padding: 12px;
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .item-left { display: flex; align-items: center; gap: 10px; flex: 1; }
-        .check-box { width: 22px; height: 22px; border: 2px solid var(--border); border-radius: 6px; display: flex; align-items: center; justify-content: center; color: transparent; }
-        .done .check-box { background: var(--primary); border-color: var(--primary); color: white; }
-        .qty { font-weight: 700; color: var(--primary); font-size: 0.8rem; background: #ecfdf5; padding: 2px 6px; border-radius: 4px; }
-        .item-name { font-weight: 500; text-transform: capitalize; }
-        .done .item-name { text-decoration: line-through; color: var(--text-muted); }
-
-        .btn-delete { color: #d1d5db; background: none; border: none; padding: 5px; }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-        }
-    </style>
-</head>
-<body>
-
-<div class="app-container">
-    <header>
-        <h1><i data-lucide="shopping-basket"></i> Minha Lista</h1>
-        <div class="date-display" id="current-date"></div>
-    </header>
-
-    <div class="action-bar">
-        <button id="btn-voice">
-            <i data-lucide="mic"></i>
-            <span id="btn-text">Falar Item</span>
-        </button>
-        <button id="btn-clear-all" title="Limpar tudo">
-            <i data-lucide="trash-2" size="18"></i>
-        </button>
-    </div>
-
-    <div class="list-container" id="list-container"></div>
-</div>
-
-<script>
-    const CATEGORIAS = {
-        '1. Hortifruti': { icon: 'leaf', keywords: ['alface', 'rúcula', 'espinafre', 'batata', 'cenoura', 'tomate', 'cebola', 'abobrinha', 'banana', 'maçã', 'laranja', 'limão', 'mamão', 'morango', 'alho', 'salsa', 'cebolinha', 'folhas', 'legumes', 'frutas'] },
-        '2. Açougue e Proteínas': { icon: 'beef', keywords: ['carne', 'moída', 'bife', 'frango', 'peito', 'coxa', 'porco', 'bisteca', 'lombo', 'peixe', 'ovos'] },
-        '3. Mercearia e Básicos': { icon: 'package', keywords: ['arroz', 'feijão', 'açúcar', 'sal', 'café', 'chá', 'macarrão', 'molho', 'óleo', 'azeite', 'vinagre', 'farinha', 'trigo', 'biscoito', 'bolacha', 'achocolatado'] },
-        '4. Frios e Laticínios': { icon: 'milk', keywords: ['leite', 'queijo', 'mussarela', 'presunto', 'peru', 'manteiga', 'margarina', 'iogurte'] },
-        '5. Padaria': { icon: 'croissant', keywords: ['pão', 'francês', 'forma', 'integral', 'torrada', 'bolo'] },
-        '6. Limpeza e Utilidades': { icon: 'droplet', keywords: ['detergente', 'sabão', 'amaciante', 'água sanitária', 'desinfetante', 'esponja', 'saco de lixo', 'papel toalha', 'guardanapo'] },
-        '7. Higiene Pessoal': { icon: 'user', keywords: ['papel higiênico', 'sabonete', 'creme dental', 'shampoo', 'condicionador', 'desodorante'] },
-        '8. Outros & Casa': { icon: 'home', keywords: ['lâmpada', 'pilha', 'vela', 'fósforo', 'filtro', 'fita'] }
-    };
-
-    const NUMEROS = { 'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3, 'quatro': 4, 'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10 };
-
-    let shoppingList = JSON.parse(localStorage.getItem('marketList_v11')) || [];
-    let collapsedCategories = JSON.parse(localStorage.getItem('collapsed_v11')) || [];
-    let isMicActive = false;
-
-    // Atualizar Data
-    const dt = new Date();
-    const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    document.getElementById('current-date').innerText = `Lista de ${meses[dt.getMonth()]} de ${dt.getFullYear()}`;
-
-    const btnVoice = document.getElementById('btn-voice');
-    const btnClearAll = document.getElementById('btn-clear-all');
-    const container = document.getElementById('list-container');
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
-    recognition.lang = 'pt-BR';
-    recognition.continuous = true;
-
-    function stopMic() {
-        recognition.stop();
-        isMicActive = false;
-        btnVoice.classList.remove('listening');
-        document.getElementById('btn-text').innerText = 'Falar Item';
-    }
-
-    btnVoice.addEventListener('click', () => {
-        if (!isMicActive) {
-            recognition.start();
-            isMicActive = true;
-            btnVoice.classList.add('listening');
-            document.getElementById('btn-text').innerText = 'Ouvindo...';
-        } else {
-            stopMic();
-        }
-    });
-
-    btnClearAll.addEventListener('click', () => {
-        if (shoppingList.length > 0 && confirm("Limpar toda a lista?")) {
-            shoppingList = [];
-            stopMic();
-            render();
-        }
-    });
-
-    recognition.onresult = (event) => {
-        const text = event.results[event.results.length - 1][0].transcript.toLowerCase().trim();
-        processInput(text);
-    };
-
-    function processInput(input) {
-        const regex = /^(\d+|um|uma|dois|duas|três|quatro|cinco)\s+(.*)/i;
-        const match = input.match(regex);
-        let qtd = 1, nome = input;
-
-        if (match) {
-            qtd = NUMEROS[match[1]] || parseInt(match[1]);
-            nome = match[2];
-        }
-        nome = nome.replace(/^(os|as|o|a|uns|umas)\s+/i, "").trim();
-        if (nome) {
-            const idx = shoppingList.findIndex(i => i.nome === nome);
-            if (idx > -1) shoppingList[idx].quantidade += qtd;
-            else shoppingList.push({ nome, quantidade: qtd, comprado: false });
-            render();
-        }
-    }
-
-    function toggleCategory(cat) {
-        if (collapsedCategories.includes(cat)) collapsedCategories = collapsedCategories.filter(c => c !== cat);
-        else collapsedCategories.push(cat);
-        localStorage.setItem('collapsed_v11', JSON.stringify(collapsedCategories));
-        render();
-    }
-
-    function render() {
-        container.innerHTML = '';
-        if (shoppingList.length === 0) {
-            container.innerHTML = '<div style="text-align:center; padding:50px; color:#999;">Nenhum item adicionado</div>';
-        } else {
-            const grouped = shoppingList.reduce((acc, obj) => {
-                const cat = Object.keys(CATEGORIAS).find(c => CATEGORIAS[c].keywords.some(k => obj.nome.includes(k))) || '9. Diversos';
-                if (!acc[cat]) acc[cat] = [];
-                acc[cat].push(obj);
-                return acc;
-            }, {});
-
-            Object.keys(grouped).sort().forEach(cat => {
-                const isCollapsed = collapsedCategories.includes(cat);
-                const section = document.createElement('div');
-                section.className = `category-group ${isCollapsed ? 'collapsed' : ''}`;
-                section.innerHTML = `
-                    <div class="category-header" onclick="toggleCategory('${cat}')">
-                        <span><i data-lucide="${CATEGORIAS[cat]?.icon || 'box'}" size="14"></i> ${cat}</span>
-                        <i data-lucide="chevron-down" class="chevron" size="16"></i>
-                    </div>
-                `;
-                const ul = document.createElement('ul');
-                grouped[cat].forEach(item => {
-                    const li = document.createElement('li');
-                    if (item.comprado) li.className = 'done';
-                    li.innerHTML = `
-                        <div class="item-left" onclick="toggleCheck('${item.nome}')">
-                            <div class="check-box"><i data-lucide="check" size="14"></i></div>
-                            <span class="qty">${item.quantidade}x</span>
-                            <span class="item-name">${item.nome}</span>
-                        </div>
-                        <button class="btn-delete" onclick="removeItem('${item.nome}')"><i data-lucide="x" size="18"></i></button>
-                    `;
-                    ul.appendChild(li);
-                });
-                section.appendChild(ul);
-                container.appendChild(section);
-            });
-        }
-        lucide.createIcons();
-        localStorage.setItem('marketList_v11', JSON.stringify(shoppingList));
-    }
-
-    function toggleCheck(nome) {
-        const item = shoppingList.find(i => i.nome === nome);
-        if (item) item.comprado = !item.comprado;
-        render();
-    }
-
-    function removeItem(nome) {
-        shoppingList = shoppingList.filter(i => i.nome !== nome);
-        render();
-    }
-
-    render();
-</script>
-</body>
-</html>
+            justify-content:
